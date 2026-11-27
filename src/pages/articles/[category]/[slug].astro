@@ -1,0 +1,57 @@
+---
+import type { GetStaticPaths } from 'astro';
+import { getEntry, render } from 'astro:content';
+import ArticleLinks from '../../../components/ArticleLinks.astro';
+import ArticleLayout from '../../../layouts/ArticleLayout.astro';
+import { CATEGORIES, PAGES } from '../../../consts';
+import { articleSlug, getArticles, type Article } from '../../../utils/articles';
+import { articleHref, categoryCrumb } from '../../../utils/url';
+
+export const getStaticPaths = (async () => {
+  const articles = await getArticles();
+  return CATEGORIES.flatMap((category) =>
+    articles
+      .filter((article) => article.data.category === category.slug)
+      .map((article) => ({
+        params: { category: category.slug, slug: articleSlug(article) },
+        props: { article, category },
+      })),
+  );
+}) satisfies GetStaticPaths;
+
+const { article, category } = Astro.props;
+const { Content } = await render(article);
+const { title, description, date, updated, image, imageAlt, next, related } = article.data;
+
+// Astro only warns about missing references, so fail the build to avoid publishing broken links.
+const resolve = async (ref: (typeof related)[number]) => {
+  const entry = await getEntry(ref);
+  if (!entry) throw new Error(`Article "${article.id}" links to missing article "${ref.id}".`);
+  return entry;
+};
+const isPublished = (entry: Article) => !entry.data.draft;
+
+const nextEntry = next ? await resolve(next) : undefined;
+const nextArticle = nextEntry && isPublished(nextEntry) ? nextEntry : undefined;
+const relatedArticles = (await Promise.all(related.map(resolve))).filter(
+  (entry) => isPublished(entry) && entry.id !== article.id,
+);
+---
+
+<ArticleLayout
+  title={title}
+  description={description}
+  date={date}
+  updated={updated}
+  image={image}
+  imageAlt={imageAlt}
+  breadcrumbs={[
+    PAGES.home,
+    PAGES.articles,
+    categoryCrumb(category),
+    { title, href: articleHref(category.slug, articleSlug(article)) },
+  ]}
+>
+  <Content />
+  <ArticleLinks slot="after-article" next={nextArticle} related={relatedArticles} />
+</ArticleLayout>

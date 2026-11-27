@@ -1,0 +1,30 @@
+---
+import { UI } from '../consts';
+---
+
+<section class="under-construction">
+  <p class="emoji" aria-hidden="true">😶‍🌫️</p>
+  <h1>{UI.underConstruction}</h1>
+</section>
+
+<style>
+  .under-construction {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 50vh;
+    text-align: center;
+  }
+
+  .emoji {
+    margin: 0;
+    font-size: 5rem;
+    line-height: 1;
+  }
+
+  h1 {
+    margin: 1.5rem 0 0;
+    font-size: clamp(1.5rem, 4vw, 2.25rem);
+  }
+</style>

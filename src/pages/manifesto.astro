@@ -1,0 +1,11 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import UnderConstruction from '../components/UnderConstruction.astro';
+import { PAGES } from '../consts';
+
+const page = PAGES.manifesto;
+---
+
+<BaseLayout title={page.title} breadcrumbs={[PAGES.home, page]}>
+  <UnderConstruction />
+</BaseLayout>

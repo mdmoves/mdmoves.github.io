@@ -1,0 +1,43 @@
+---
+import '../styles/global.css';
+import NavBar from '../components/NavBar.astro';
+import Breadcrumbs from '../components/Breadcrumbs.astro';
+import type { Crumb } from '../utils/url';
+import { DEFAULT_LANG, SITE_DESCRIPTION, SITE_NAME } from '../consts';
+import { withBase } from '../utils/url';
+
+interface Props {
+  title?: string;
+  description?: string;
+  breadcrumbs?: Crumb[];
+  lang?: string;
+}
+
+const { title, description = SITE_DESCRIPTION, breadcrumbs, lang = DEFAULT_LANG } = Astro.props;
+const pageTitle = title ? `${title} | ${SITE_NAME}` : SITE_NAME;
+---
+
+<!doctype html>
+<html lang={lang}>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content={description} />
+    <title>{pageTitle}</title>
+    <link rel="icon" type="image/svg+xml" href={withBase('/favicon.svg')} />
+    <link rel="icon" href={withBase('/favicon.ico')} sizes="any" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <NavBar />
+    <main>
+      {breadcrumbs && <Breadcrumbs items={breadcrumbs} />}
+      <slot />
+    </main>
+  </body>
+</html>

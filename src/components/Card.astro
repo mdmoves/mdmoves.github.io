@@ -1,0 +1,82 @@
+---
+import type { ImageMetadata } from 'astro';
+import ArticleImage from './ArticleImage.astro';
+import { IMAGE_WIDTHS } from '../consts';
+import { withBase } from '../utils/url';
+
+interface Props {
+  title: string;
+  href: string;
+  image?: ImageMetadata;
+  imageAlt?: string;
+  description?: string;
+  meta?: string;
+}
+
+const { title, href, image, imageAlt = '', description, meta } = Astro.props;
+---
+
+<a class="card" href={withBase(href)}>
+  <ArticleImage
+    image={image}
+    alt={imageAlt}
+    widths={IMAGE_WIDTHS.card}
+    sizes="(max-width: 48rem) 100vw, 23rem"
+  />
+  <div class="card-body">
+    {meta && <p class="card-meta">{meta}</p>}
+    <h2 class="card-title">{title}</h2>
+    {description && <p class="card-description">{description}</p>}
+  </div>
+</a>
+
+<style>
+  .card {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    overflow: hidden;
+    border-radius: var(--radius);
+    background: var(--color-container);
+    box-shadow: var(--shadow);
+    text-decoration: none;
+    color: var(--color-text);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .card:hover {
+    color: var(--color-text);
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+  }
+
+  .card :global(img) {
+    width: 100%;
+    aspect-ratio: 16 / 10;
+    object-fit: cover;
+  }
+
+  .card-body {
+    padding: 1rem 1.25rem 1.25rem;
+  }
+
+  .card-meta {
+    margin: 0 0 0.25rem;
+    font-size: 0.875rem;
+    color: var(--color-muted);
+  }
+
+  .card-title {
+    margin: 0;
+    font-size: 1.25rem;
+  }
+
+  .card:hover .card-title {
+    color: var(--color-primary);
+  }
+
+  .card-description {
+    margin: 0.5rem 0 0;
+    color: var(--color-muted);
+  }
+</style>

@@ -1,0 +1,168 @@
+---
+import ArticleImage from './ArticleImage.astro';
+import Card from './Card.astro';
+import { IMAGE_WIDTHS, UI } from '../consts';
+import { articleSlug, type Article } from '../utils/articles';
+import { articleHref, withBase } from '../utils/url';
+
+interface Props {
+  next?: Article;
+  related?: Article[];
+}
+
+const { next, related = [] } = Astro.props;
+const href = (article: Article) => articleHref(article.data.category, articleSlug(article));
+---
+
+{
+  (next || related.length > 0) && (
+    <footer class="article-links">
+      {next && (
+        <section aria-labelledby="keep-reading">
+          <h2 id="keep-reading" class="label">{UI.keepReading}</h2>
+          <a class="next" href={withBase(href(next))}>
+            <ArticleImage
+              image={next.data.image}
+              alt={next.data.imageAlt}
+              widths={IMAGE_WIDTHS.card}
+              sizes="(max-width: 36rem) 100vw, 12rem"
+            />
+            <div class="next-body">
+              <h3 class="next-title">{next.data.title}</h3>
+              {next.data.description && <p class="next-description">{next.data.description}</p>}
+            </div>
+            <span class="arrow" aria-hidden="true">→</span>
+          </a>
+        </section>
+      )}
+
+      {related.length > 0 && (
+        <section aria-labelledby="related-articles">
+          <h2 id="related-articles" class="label">{UI.relatedArticles}</h2>
+          <ul class="related">
+            {related.map((article) => (
+              <li>
+                <Card
+                  title={article.data.title}
+                  href={href(article)}
+                  image={article.data.image}
+                  imageAlt={article.data.imageAlt}
+                />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </footer>
+  )
+}
+
+<style>
+  .article-links {
+    display: grid;
+    gap: 2.5rem;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(33, 33, 49, 0.1);
+  }
+
+  .label {
+    margin: 0 0 0.75rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-primary);
+  }
+
+  .next {
+    display: grid;
+    grid-template-columns: 12rem 1fr auto;
+    align-items: center;
+    gap: 1.25rem;
+    overflow: hidden;
+    border-radius: var(--radius);
+    background: var(--color-container);
+    box-shadow: var(--shadow);
+    text-decoration: none;
+    color: var(--color-text);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
+  }
+
+  .next:hover {
+    color: var(--color-text);
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+  }
+
+  .next :global(img) {
+    display: block;
+    width: 100%;
+    height: 100%;
+    aspect-ratio: 4 / 3;
+    object-fit: cover;
+  }
+
+  .next-body {
+    padding: 1rem 0;
+  }
+
+  .next-title {
+    margin: 0;
+    font-size: 1.125rem;
+  }
+
+  .next-description {
+    margin: 0.375rem 0 0;
+    font-size: 0.9375rem;
+    color: var(--color-muted);
+  }
+
+  .arrow {
+    padding-right: 1.25rem;
+    font-size: 1.5rem;
+    color: var(--color-muted);
+    transition: transform 0.2s ease, color 0.2s ease;
+  }
+
+  .next:hover .next-title,
+  .next:hover .arrow {
+    color: var(--color-primary);
+  }
+
+  .next:hover .arrow {
+    transform: translateX(4px);
+  }
+
+  .related {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(13rem, 1fr));
+    gap: 1.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .related :global(.card-title) {
+    font-size: 1rem;
+  }
+
+  @media (max-width: 36rem) {
+    .next {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
+
+    .next :global(img) {
+      aspect-ratio: 16 / 9;
+    }
+
+    .next-body {
+      padding: 1rem 1.25rem 1.25rem;
+    }
+
+    .arrow {
+      display: none;
+    }
+  }
+</style>

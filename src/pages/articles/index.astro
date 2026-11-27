@@ -1,0 +1,31 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import Card from '../../components/Card.astro';
+import { CATEGORIES, PAGES } from '../../consts';
+import { getArticles } from '../../utils/articles';
+import { categoryHref } from '../../utils/url';
+
+const categories = await Promise.all(
+  CATEGORIES.map(async (c) => {
+    const [latest] = await getArticles(c.slug);
+    return {
+      ...c,
+      image: latest?.data.image,
+      imageAlt: latest?.data.imageAlt ?? '',
+    };
+  }),
+);
+---
+
+<BaseLayout title={PAGES.articles.title} breadcrumbs={[PAGES.home, PAGES.articles]}>
+  <h1>{PAGES.articles.title}</h1>
+  <ul class="card-grid">
+    {
+      categories.map((c) => (
+        <li>
+          <Card title={c.title} href={categoryHref(c.slug)} image={c.image} imageAlt={c.imageAlt} />
+        </li>
+      ))
+    }
+  </ul>
+</BaseLayout>

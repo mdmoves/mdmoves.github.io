@@ -1,0 +1,342 @@
+---
+import { CATEGORIES, NAV_ITEMS, PAGES, SITE_NAME, UI } from '../consts';
+import { categoryHref, withBase } from '../utils/url';
+
+const currentPath = Astro.url.pathname;
+const isActive = (href: string) => currentPath.startsWith(withBase(href));
+---
+
+<header class="navbar" data-navbar>
+  <nav class="navbar-inner" aria-label={UI.mainNavLabel}>
+    <a class="brand" href={withBase(PAGES.home.href)}>{SITE_NAME}</a>
+
+    <button
+      class="menu-toggle"
+      type="button"
+      aria-expanded="false"
+      aria-controls="nav-menu"
+      data-menu-toggle
+    >
+      <span class="visually-hidden">{UI.toggleMenu}</span>
+      <span class="menu-icon" aria-hidden="true"></span>
+    </button>
+
+    <ul class="nav-menu" id="nav-menu" data-menu>
+      {
+        NAV_ITEMS.map((item) =>
+          item.href === PAGES.articles.href ? (
+            <li class="dropdown" data-dropdown>
+              <button
+                class:list={['nav-link', 'dropdown-toggle', { active: isActive(item.href) }]}
+                type="button"
+                aria-expanded="false"
+                aria-controls="articles-menu"
+                data-dropdown-toggle
+              >
+                {item.title}
+                <span class="caret" aria-hidden="true" />
+              </button>
+              <ul class="dropdown-menu" id="articles-menu">
+                {CATEGORIES.map((c) => (
+                  <li>
+                    <a
+                      class:list={['dropdown-link', { active: isActive(categoryHref(c.slug)) }]}
+                      href={withBase(categoryHref(c.slug))}
+                    >
+                      {c.title}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </li>
+          ) : (
+            <li>
+              <a
+                class:list={['nav-link', { active: isActive(item.href) }]}
+                href={withBase(item.href)}
+                aria-current={isActive(item.href) ? 'page' : undefined}
+              >
+                {item.title}
+              </a>
+            </li>
+          ),
+        )
+      }
+    </ul>
+  </nav>
+</header>
+
+<script>
+  const navbar = document.querySelector<HTMLElement>('[data-navbar]');
+  const menuToggle = document.querySelector<HTMLButtonElement>('[data-menu-toggle]');
+  const dropdown = document.querySelector<HTMLElement>('[data-dropdown]');
+  const dropdownToggle = document.querySelector<HTMLButtonElement>('[data-dropdown-toggle]');
+
+  if (navbar && menuToggle && dropdown && dropdownToggle) {
+    const setMenu = (open: boolean) => {
+      navbar.classList.toggle('menu-open', open);
+      menuToggle.setAttribute('aria-expanded', String(open));
+    };
+    const setDropdown = (open: boolean) => {
+      dropdown.classList.toggle('open', open);
+      dropdownToggle.setAttribute('aria-expanded', String(open));
+    };
+
+    menuToggle.addEventListener('click', () => setMenu(!navbar.classList.contains('menu-open')));
+    dropdownToggle.addEventListener('click', () => setDropdown(!dropdown.classList.contains('open')));
+
+    document.addEventListener('click', (e) => {
+      if (!dropdown.contains(e.target as Node)) setDropdown(false);
+    });
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        setDropdown(false);
+        setMenu(false);
+      }
+    });
+
+    // Auto-hide on scroll down, reveal on scroll up.
+    let lastY = window.scrollY;
+    let ticking = false;
+    const threshold = 8;
+    window.addEventListener(
+      'scroll',
+      () => {
+        if (ticking) return;
+        ticking = true;
+        requestAnimationFrame(() => {
+          const y = window.scrollY;
+          const menusOpen =
+            navbar.classList.contains('menu-open') || dropdown.classList.contains('open');
+          if (y <= navbar.offsetHeight) {
+            navbar.classList.remove('hidden');
+          } else if (Math.abs(y - lastY) > threshold && !menusOpen) {
+            navbar.classList.toggle('hidden', y > lastY);
+          }
+          lastY = y;
+          ticking = false;
+        });
+      },
+      { passive: true },
+    );
+    navbar.addEventListener('focusin', () => navbar.classList.remove('hidden'));
+  }
+</script>
+
+<style>
+  .navbar {
+    position: fixed;
+    inset: 0 0 auto 0;
+    z-index: 100;
+    padding: var(--nav-gap) var(--nav-gap) 0;
+    /* The transparent margin lets clicks through to the content behind it. */
+    pointer-events: none;
+    transition: transform 0.25s ease;
+  }
+
+  .navbar.hidden {
+    /* Extra offset also hides the shadow. */
+    transform: translateY(calc(-100% - 1rem));
+  }
+
+  .navbar-inner {
+    position: relative;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: var(--content-width);
+    height: var(--nav-height);
+    margin: 0 auto;
+    padding: 0 1.25rem;
+    background: var(--color-container);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
+    pointer-events: auto;
+  }
+
+  .brand {
+    font-size: 1.375rem;
+    font-weight: 700;
+    text-decoration: none;
+    color: var(--color-text);
+  }
+
+  .brand:hover {
+    color: var(--color-primary);
+  }
+
+  .nav-menu {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    margin: 0;
+    padding: 0;
+    list-style: none;
+  }
+
+  .nav-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.375rem;
+    padding: 0.5rem 0.75rem;
+    border: 0;
+    border-radius: 0.5rem;
+    background: none;
+    font: inherit;
+    font-weight: 500;
+    color: var(--color-text);
+    text-decoration: none;
+    cursor: pointer;
+  }
+
+  .nav-link:hover,
+  .nav-link.active,
+  .dropdown-link.active {
+    color: var(--color-primary);
+  }
+
+  .caret {
+    width: 0.45rem;
+    height: 0.45rem;
+    border-right: 2px solid currentColor;
+    border-bottom: 2px solid currentColor;
+    transform: translateY(-2px) rotate(45deg);
+    transition: transform 0.2s ease;
+  }
+
+  .dropdown.open .caret {
+    transform: translateY(1px) rotate(-135deg);
+  }
+
+  .dropdown {
+    position: relative;
+  }
+
+  .dropdown-menu {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 0.5rem);
+    min-width: 13rem;
+    margin: 0;
+    padding: 0.5rem 0;
+    list-style: none;
+    background: var(--color-container);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-hover);
+  }
+
+  .dropdown.open .dropdown-menu {
+    display: block;
+  }
+
+  .dropdown-link {
+    display: block;
+    padding: 0.5rem 1rem;
+    text-decoration: none;
+    white-space: nowrap;
+  }
+
+  .dropdown-link:hover {
+    background: var(--color-surface);
+  }
+
+  .menu-toggle {
+    display: none;
+    width: 2.5rem;
+    height: 2.5rem;
+    padding: 0;
+    border: 0;
+    background: none;
+    cursor: pointer;
+    position: relative;
+  }
+
+  .menu-icon,
+  .menu-icon::before,
+  .menu-icon::after {
+    position: absolute;
+    left: 50%;
+    width: 1.5rem;
+    height: 2px;
+    margin-left: -0.75rem;
+    background: var(--color-text);
+    transition: transform 0.2s ease, opacity 0.2s ease;
+  }
+
+  .menu-icon {
+    top: 50%;
+  }
+
+  .menu-icon::before,
+  .menu-icon::after {
+    content: '';
+    left: 0;
+    margin-left: 0;
+  }
+
+  .menu-icon::before {
+    top: -7px;
+  }
+
+  .menu-icon::after {
+    top: 7px;
+  }
+
+  .menu-open .menu-icon {
+    background: transparent;
+  }
+
+  .menu-open .menu-icon::before {
+    transform: translateY(7px) rotate(45deg);
+  }
+
+  .menu-open .menu-icon::after {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  @media (max-width: 48rem) {
+    .menu-toggle {
+      display: block;
+    }
+
+    .nav-menu {
+      display: none;
+      position: absolute;
+      top: calc(100% + 0.5rem);
+      left: 0;
+      right: 0;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0;
+      padding: 0.5rem 1.25rem 1rem;
+      background: var(--color-container);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-hover);
+    }
+
+    .menu-open .nav-menu {
+      display: flex;
+    }
+
+    .nav-link {
+      width: 100%;
+      justify-content: space-between;
+      padding: 0.75rem 0;
+    }
+
+    .dropdown-menu {
+      position: static;
+      box-shadow: none;
+      padding: 0 0 0.5rem 1rem;
+    }
+
+    .dropdown-link {
+      padding: 0.5rem 0;
+    }
+
+    .dropdown-link:hover {
+      background: none;
+    }
+  }
+</style>

@@ -23,5 +23,8 @@ pnpm-debug.log*
 # jetbrains setting folder
 .idea/
 
-# other
-my_notes/
+# notes
+.obsidian
+
+# private
+private/

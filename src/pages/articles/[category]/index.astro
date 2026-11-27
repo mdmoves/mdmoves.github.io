@@ -1,0 +1,31 @@
+---
+import type { GetStaticPaths } from 'astro';
+import BaseLayout from '../../../layouts/BaseLayout.astro';
+import ArticleList from '../../../components/ArticleList.astro';
+import { CATEGORIES, PAGES, UI } from '../../../consts';
+import { getArticles } from '../../../utils/articles';
+import { categoryCrumb } from '../../../utils/url';
+
+export const getStaticPaths = (() =>
+  CATEGORIES.map((category) => ({
+    params: { category: category.slug },
+    props: { category },
+  }))) satisfies GetStaticPaths;
+
+const { category } = Astro.props;
+const articles = await getArticles(category.slug);
+---
+
+<BaseLayout
+  title={category.title}
+  breadcrumbs={[PAGES.home, PAGES.articles, categoryCrumb(category)]}
+>
+  <h1>{category.title}</h1>
+  {
+    articles.length === 0 ? (
+      <p>{UI.noArticles}</p>
+    ) : (
+      <ArticleList articles={articles} />
+    )
+  }
+</BaseLayout>

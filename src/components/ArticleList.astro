@@ -1,0 +1,211 @@
+---
+import Card from './Card.astro';
+import { SORT_OPTIONS, UI } from '../consts';
+import { articleSlug, formatDate, type Article } from '../utils/articles';
+import { articleHref } from '../utils/url';
+
+interface Props {
+  /** Articles in default order (newest first). */
+  articles: Article[];
+}
+
+const { articles } = Astro.props;
+---
+
+<div class="article-list" data-article-list>
+  <!-- Revealed by the script, so visitors without JS only see the default list. -->
+  <div class="list-controls" data-controls hidden>
+    <label class="control control-filter">
+      <span class="visually-hidden">{UI.filterLabel}</span>
+      <input type="search" placeholder={UI.filterPlaceholder} autocomplete="off" data-filter />
+    </label>
+    <label class="control control-sort">
+      <span class="control-label">{UI.sortLabel}</span>
+      <select data-sort>
+        {SORT_OPTIONS.map((o) => <option value={o.value}>{o.label}</option>)}
+      </select>
+    </label>
+  </div>
+
+  <ul class="card-grid" data-items>
+    {
+      articles.map((article) => (
+        <li
+          data-title={article.data.title}
+          data-text={`${article.data.title} ${article.data.description}`}
+          data-date={article.data.date.getTime()}
+          data-updated={(article.data.updated ?? article.data.date).getTime()}
+        >
+          <Card
+            title={article.data.title}
+            href={articleHref(article.data.category, articleSlug(article))}
+            image={article.data.image}
+            imageAlt={article.data.imageAlt}
+            description={article.data.description}
+            meta={formatDate(article.data.date, 'short')}
+          />
+        </li>
+      ))
+    }
+  </ul>
+
+  <p class="no-results" data-empty hidden>{UI.noMatchingArticles}</p>
+  <p class="visually-hidden" aria-live="polite" data-status></p>
+</div>
+
+<script>
+  import type { SORT_OPTIONS } from '../consts';
+
+  type SortKey = (typeof SORT_OPTIONS)[number]['value'];
+
+  const normalize = (s: string) =>
+    s
+      .normalize('NFD')
+      .replace(/\p{Diacritic}/gu, '')
+      .toLowerCase();
+
+  const byTitle = (a: HTMLElement, b: HTMLElement) =>
+    (a.dataset.title ?? '').localeCompare(b.dataset.title ?? '', undefined, {
+      sensitivity: 'base',
+      numeric: true,
+    });
+  const num = (el: HTMLElement, key: 'date' | 'updated') => Number(el.dataset[key]);
+
+  const comparators: Record<SortKey, (a: HTMLElement, b: HTMLElement) => number> = {
+    newest: (a, b) => num(b, 'date') - num(a, 'date'),
+    oldest: (a, b) => num(a, 'date') - num(b, 'date'),
+    'title-asc': byTitle,
+    'title-desc': (a, b) => byTitle(b, a),
+    updated: (a, b) => num(b, 'updated') - num(a, 'updated'),
+  };
+
+  document.querySelectorAll<HTMLElement>('[data-article-list]').forEach((root) => {
+    const controls = root.querySelector<HTMLElement>('[data-controls]')!;
+    const filter = root.querySelector<HTMLInputElement>('[data-filter]')!;
+    const sort = root.querySelector<HTMLSelectElement>('[data-sort]')!;
+    const list = root.querySelector<HTMLUListElement>('[data-items]')!;
+    const empty = root.querySelector<HTMLElement>('[data-empty]')!;
+    const status = root.querySelector<HTMLElement>('[data-status]')!;
+    const items = Array.from(list.children) as HTMLElement[];
+    const texts = new Map(items.map((li) => [li, normalize(li.dataset.text ?? '')]));
+    const total = items.length;
+
+    // Restore state from the URL so filtered/sorted views survive reloads and back navigation.
+    const params = new URLSearchParams(location.search);
+    filter.value = params.get('q') ?? '';
+    const initialSort = params.get('sort');
+    if (initialSort && initialSort in comparators) sort.value = initialSort;
+
+    const update = () => {
+      const words = normalize(filter.value).split(/\s+/).filter(Boolean);
+      const key = sort.value as SortKey;
+      let visible = 0;
+
+      [...items].sort(comparators[key]).forEach((li) => {
+        const text = texts.get(li)!;
+        const match = words.every((w) => text.includes(w));
+        li.hidden = !match;
+        if (match) visible++;
+        list.append(li);
+      });
+
+      empty.hidden = visible > 0;
+      status.textContent = words.length ? `${visible} of ${total} articles shown` : '';
+
+      const url = new URL(location.href);
+      if (filter.value.trim()) url.searchParams.set('q', filter.value.trim());
+      else url.searchParams.delete('q');
+      if (key !== 'newest') url.searchParams.set('sort', key);
+      else url.searchParams.delete('sort');
+      history.replaceState(history.state, '', url);
+    };
+
+    filter.addEventListener('input', update);
+    sort.addEventListener('change', update);
+    controls.hidden = false;
+    update();
+  });
+</script>
+
+<style>
+  .list-controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 1.5rem;
+  }
+
+  .list-controls[hidden],
+  .no-results[hidden] {
+    display: none;
+  }
+
+  .control {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .control-filter {
+    flex: 1 1 16rem;
+    max-width: 24rem;
+  }
+
+  .control-label {
+    font-size: 0.9375rem;
+    color: var(--color-muted);
+    white-space: nowrap;
+  }
+
+  input,
+  select {
+    font: inherit;
+    font-size: 0.9375rem;
+    color: var(--color-text);
+    background: var(--color-container);
+    border: 1px solid transparent;
+    border-radius: 0.5rem;
+    box-shadow: var(--shadow);
+    padding: 0.5rem 0.75rem;
+    transition: border-color 0.2s ease;
+  }
+
+  input {
+    width: 100%;
+  }
+
+  select {
+    cursor: pointer;
+  }
+
+  input:hover,
+  select:hover,
+  input:focus,
+  select:focus {
+    border-color: var(--color-primary);
+  }
+
+  input:focus,
+  select:focus {
+    outline: none;
+  }
+
+  input:focus-visible,
+  select:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+  }
+
+  .no-results {
+    margin-top: 1.5rem;
+    color: var(--color-muted);
+  }
+
+  @media (max-width: 48rem) {
+    .control-filter {
+      max-width: none;
+    }
+  }
+</style>
